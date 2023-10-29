@@ -1,5 +1,3 @@
-## TODO clean up and write better
-
 ### Folder structure
 
 - content-page/
@@ -26,10 +24,64 @@
 The tab titled 'Initial' is what is synced with headers from content section. It does not represent actual titles used for segments; it needs cleaning up. Some segments may be added to headers from page ("Intro", "Outline", "Summary", "Outro", etc.), and not every header from the content will have its own segment.
    
 The tab titled 'Full' is the one representing the true list of segments. It also contains the dud indicator, timestamps, internal timestamps, and so on
-   
+
+### Checking timestamps locally (before upload combined video/ripped audio to platforms)
+
+Want some way to verify timestamp accuracy locally, before uploading files to platforms/potentially having to undo that step if something turns out to be amiss.
+
+In doing this verification, we want something fast and keyboard-driven. The equivalent of this feature on YouTube:
+
+* [Are there YouTube keyboard shortcuts for moving forward and backward through a video's chapters? - Web Applications Stack Exchange](https://webapps.stackexchange.com/questions/143429/are-there-youtube-keyboard-shortcuts-for-moving-forward-and-backward-through-a-v)
+
+VLC can do this with video chapters:
+
+- Shift + N : Next chapter
+- Shift + P : Previous chapter
+- See [this video](https://www.youtube.com/watch?v=KO2TnlEP9Rg) for chapters in VLC generally. I automate making them with Python and ffmpeg, but it's the same idea as making them manually here with Drax.
+
+* [How do you add chapters to a video file? : r/VideoEditing](https://www.reddit.com/r/VideoEditing/comments/p3fc61/how_do_you_add_chapters_to_a_video_file/)
+* [How to Add Chapters to MP4s with FFmpeg - Kyle Howells](https://ikyle.me/blog/2020/add-mp4-chapters-ffmpeg)
+
+Before thinking of video chapters and the keyboard shortcuts to go from one to the next (which is definitely best, in my opinion---which is why I dumped my other ideas and went with that one once I'd thought of it), I had been looking for a way to replicate the hyperlinks of the timestamp list in the YouTube video description.
+
+After learning you could run a shell command to go to a specific location in VLC (e.g., [here](https://www.reddit.com/r/VLC/comments/pixxm3/start_a_video_at_a_specific_time/)), I'd thought maybe I could set up hyperlinks in Excel to jump to sections in the timestamp list. Since I'm already writing the timestamps to to Excel via Pandas anyway, maybe I could just make the timestamps links in that way?
+
+It turns out that hyperlinks in Excel are somewhat restricted. If you want to support command line commands (with arguments and so on), you need a VBA macro for it:
+
+* [Execute Shell Commands from Excel Cell - Super User](https://superuser.com/questions/1220696/execute-shell-commands-from-excel-cell)
+* [Excel Hyperlinks Run Command Files - Contextures Blog](https://contexturesblog.com/archives/2017/09/14/excel-hyperlinks-run-command-files/)
+
+Adding macros to workbooks generally:
+
+* [How to Add Macro Code to Excel Workbook](https://www.contextures.com/xlvba01.html)
+
+But adding macros requires the file to be .xlsm, not .xlsx. And openpyxl and xlsxwriter (two packages commonly used with pandas to write dataframes to Excel) don't support dealing with macros in Python programmatically:
+
+* [python - How write to xlsm using openpyxl - Stack Overflow](https://stackoverflow.com/questions/49470871/how-write-to-xlsm-using-openpyxl)
+* [python - How to save XLSM file with Macro, using openpyxl - Stack Overflow](https://stackoverflow.com/questions/17675780/how-to-save-xlsm-file-with-macro-using-openpyxl)
+
+Like, I think you might be able to open/edit the sheets in an .xlsm file, but doesn't look like openpyxl lets you programmatically add macros? (I would need to do that in creating the workbook for the first time, to support the special hyperlinks that let run stuff via shell commands).
+
+I think another package called xlwings could interface with dataframes from pandas, and I think better supports macros:
+
+* [Quickstart - xlwings Documentation](https://docs.xlwings.org/en/stable/quickstart.html)
+* [python - Exporting a pandas dataframe to excel using xlwings - Stack Overflow](https://stackoverflow.com/questions/74308632/exporting-a-pandas-dataframe-to-excel-using-xlwings)
+
+I didn't look too far into this, since it was at about this point in the research process I thought to check video chapters. But it does seem like it ought to work.
+
+It also looks like you can us xlwings as the glue to link Python to Excel for further automation:
+
+* [Python makes spreadsheets Excel’lent | by Vinayak Nayak | Towards Data Science](https://towardsdatascience.com/python-makes-spreadsheets-excellent-f48ce0c648e3)
+
+I may look into that more at some point. Although now that [Python in Excel](https://support.microsoft.com/en-us/office/introduction-to-python-in-excel-55643c2e-ff56-4168-b1ce-9428c8308545#:~:text=Python%20in%20Excel%20brings%20the,are%20returned%20to%20the%20worksheet.) is a thing, maybe it won't bee needed any more?
 
 
 
+
+
+-----
+
+### TODO: clean up and write better
 
 First step should be to check all the things that could possible cause errors, and then short-circuit if any of these fail. So that errors do not cause any confusing partial completion state. Also simpler than that getting partway and then writing code to roll back (like transactions in databases).
 
