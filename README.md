@@ -1,3 +1,4 @@
+## TODO clean up and write better
 
 ### Folder structure
 
