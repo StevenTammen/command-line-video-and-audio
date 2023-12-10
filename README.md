@@ -18,6 +18,18 @@
         - 10-20-transition.mp4
         - 20-30-transition.mp4
 
+### Concatenating video with ffmpeg
+
+* [concatenate videos ffmpeg - Google Search](https://www.google.com/search?q=concatenate+videos+ffmpeg&sca_esv=ca43310e5c28fa02&sxsrf=AM9HkKmYdYq95vyhUjViM_US00Nrs6ULKA%3A1699302605620&ei=zUxJZfq8JaGIwbkP4qqsiAg&ved=0ahUKEwi617HBm7CCAxUhRDABHWIVC4EQ4dUDCBA&uact=5&oq=concatenate+videos+ffmpeg&gs_lp=Egxnd3Mtd2l6LXNlcnAiGWNvbmNhdGVuYXRlIHZpZGVvcyBmZm1wZWcyBBAjGCcyCBAAGIoFGJECMgYQABgWGB4yBhAAGBYYHki_BlDnA1idBXABeAGQAQCYAXOgAeYBqgEDMC4yuAEDyAEA-AEBwgIKEAAYRxjWBBiwA-IDBBgAIEGIBgGQBgg&sclient=gws-wiz-serp)
+* [Concatenating Videos Using FFmpeg | Baeldung on Linux](https://www.baeldung.com/linux/ffmpeg-video-concatenation)
+* [Concatenate – FFmpeg](https://trac.ffmpeg.org/wiki/Concatenate)
+* [How to Merge Video Files Using FFmpeg - Bannerbear](https://www.bannerbear.com/blog/how-to-merge-video-files-using-ffmpeg/)
+* [ffmpeg concat demuxer with file without audio stream“concat” Demuxer site:superuser.com - Google Search](https://www.google.com/search?q=ffmpeg+concat+demuxer+with+file+without+audio+stream%E2%80%9Cconcat%E2%80%9D+Demuxer+site:superuser.com&sca_esv=ca43310e5c28fa02&sxsrf=AM9HkKlXQoKWjFOjr3sxgomNtjvYLsvysw:1699303219132&sa=X&ved=2ahUKEwjUtPflnbCCAxXSgYQIHajDB2EQrQIoBHoECBcQBQ&biw=1912&bih=932&dpr=1)
+* [Use FFMpeg concat demuxer with multiple files with/without audio tracks - Super User](https://superuser.com/questions/1624249/use-ffmpeg-concat-demuxer-with-multiple-files-with-without-audio-tracks)
+* [Merging several videos with audio channel and without audio - Super User](https://superuser.com/questions/1044988/merging-several-videos-with-audio-channel-and-without-audio/1044997#1044997)
+* [ffmpeg - Adding audio to picture: video too long even when using -shortest - Video Production Stack Exchange](https://video.stackexchange.com/questions/27738/adding-audio-to-picture-video-too-long-even-when-using-shortest/27740#27740)
+* [Concatenate videos with/without audio stream - Super User](https://superuser.com/questions/928770/concatenate-videos-with-without-audio-stream?rq=1)
+
 
 ### Structure of segments.xlsx Excel file
 

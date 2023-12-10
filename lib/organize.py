@@ -11,6 +11,121 @@ and the get them ready for processing and concatenation.
 import os
 import subprocess
 import shlex
+import pandas as pd
+import shutil
+from .general_utility import *
+from .write_to_files import *
+import re
+
+class Recording:
+    def __init__(self, recording_dir_path):
+        self.recording_dir_path = recording_dir_path
+        self.recording_dir = Path(self.recording_dir_path)
+
+        self.spreadsheet_path = recording_dir_path + '/' + 'segments.xlsx'
+        self.spreadsheet = Path(self.spreadsheet_path)
+
+        self.recording_subdir_path = recording_dir_path + '/recording'
+        self.recording_subdir = Path(self.recording_subdir_path)
+        
+        self.raw_subdir_path = recording_dir_path + '/recording/raw'
+        self.raw_subdir = Path(self.raw_subdir_path)
+        
+        self.processed_subdir_path = recording_dir_path + '/recording/processed'
+        self.processed_subdir = Path(self.processed_subdir_path)
+
+        self.topic_transitions_subdir_path = recording_dir_path + '/recording/topic-transitions'
+        self.topic_transitions_subdir = Path(self.topic_transitions_subdir_path)
+
+def add_to_things_that_need_scaffolding(recording_dir_path, dirs_to_make, dirs_without_spreadsheets):
+    added_something = False
+    r = Recording(recording_dir_path)
+    # Order is importing when adding to the list of dirs to make
+    if(not r.recording_dir.exists()):
+        print(f'Will make {r.recording_dir_path}')
+        dirs_to_make.append(r.recording_dir_path)
+        added_something = True
+    if(not r.spreadsheet.exists()):
+        print(f'Will make {r.spreadsheet_path}')
+        dirs_without_spreadsheets.append(r.recording_dir_path)
+        added_something = True
+    if(not r.recording_subdir.exists()):
+        print(f'Will make {r.recording_subdir_path}')
+        dirs_to_make.append(r.recording_subdir_path)
+        added_something = True
+    if(not r.raw_subdir.exists()):
+        print(f'Will make {r.raw_subdir_path}')
+        dirs_to_make.append(r.raw_subdir_path)
+        added_something = True
+    if(not r.processed_subdir.exists()):
+        print(f'Will make {r.processed_subdir_path}')
+        dirs_to_make.append(r.processed_subdir_path)
+        added_something = True
+    if(not r.topic_transitions_subdir.exists()):
+        print(f'Will make {r.topic_transitions_subdir_path}')
+        dirs_to_make.append(r.topic_transitions_subdir_path)
+        added_something = True
+    # Add extra newline if added something, to keep content
+    # folders separate from each other in output
+    if(added_something):
+        print()
+
+def scaffold_directories(dirs_to_make):
+    for dir_to_make in dirs_to_make:
+        os.makedirs(dir_to_make)
+
+def scaffold_spreadsheets(dirs_without_spreadsheets):
+    for dir_without_spreadsheet in dirs_without_spreadsheets:
+        write_content_headers_to_segments_spreadsheet(dir_without_spreadsheet)
+
+# TODO: documentation
+def scaffold_recording_dirs(content_dir_path):
+    dirs_to_make = []
+    dirs_without_spreadsheets = []
+
+    # Recordings/ dir version of parent folder
+    parent_recordings_dir_path = re.sub(r'/([^/]+)/content/', r'/recordings/\1/content/', content_dir_path)
+    parent_recordings_dir = Path(parent_recordings_dir_path)
+    if(not parent_recordings_dir.exists()):
+        print(f'Will make {parent_recordings_dir_path}\n')
+        dirs_to_make.append(parent_recordings_dir_path)
+    
+    
+    # fast_scandir is recursive, so works for discussion pages too
+    # (that is, all levels of subfolders, not only first level)
+    content_dir_paths = fast_scandir(content_dir_path)
+
+    # But those paths are for the normal project directory, not for
+    # the recording directory. We want the recording directory versions
+    content_dir_paths = list(map(lambda x: re.sub(r'/([^/]+)/content/', r'/recordings/\1/content/', x), content_dir_paths))
+
+    # Special case: if no subdirectories, means content_dir_path
+    # specifies the path of a single page study, so we need to
+    # scaffold stuff in parent_recordings_dir directly, rather than
+    # in subfolders
+    if(len(content_dir_paths) == 0):
+        add_to_things_that_need_scaffolding(parent_recordings_dir_path, dirs_to_make, dirs_without_spreadsheets)
+    
+    # Otherwise
+    for content_dir_path in content_dir_paths:
+        add_to_things_that_need_scaffolding(content_dir_path, dirs_to_make, dirs_without_spreadsheets)
+
+    # If nothing to scaffold, short circuit
+    if(len(dirs_to_make) == 0 and len(dirs_without_spreadsheets) == 0):
+        print("Nothing to scaffold. Exiting...")
+        return
+    
+    # Otherwise
+    while(True):
+        answer = input("Check over what will be scaffolded. Proceed?\n> ")
+        if answer.lower() in ["y","yes"]:
+            scaffold_directories(dirs_to_make)
+            scaffold_spreadsheets(dirs_without_spreadsheets)
+            return
+        elif answer.lower() in ["n","no"]:
+            return 
+        else:
+            print("Please respond with 'y'/'yes' or 'n'/'no'\n")
 
 # TODO
 def automatically_organize_gopro_recordings():
@@ -69,15 +184,42 @@ def rename_processed_segments_to_be_in_tens():
     # Want order to match between raw and processed. Hence why this would then need to be called
     return
 
+# TODO: documentation
+def generate_topic_transition_slides(recording_dir_path, clvaa_path):
 
-# I will change this function later to actually autogenerate the transition segments eventually. Maybe?
+    # Copy slides template into topic_transitions_dir
+    topic_transitions_slides_template_path = clvaa_path + '/' + 'templates' + '/' + 'topic-transitions-slides-template.html'
+    topic_transitions_dir_path = recording_dir_path + '/recording/topic-transitions'
+    if not os.path.exists(topic_transitions_dir_path):
+        os.makedirs(topic_transitions_dir_path)
+    topic_transitions_slides_path = topic_transitions_dir_path + '/' + 'topic-transitions-slides.html'
+    # This overwrites whatever file is currently there, if it already exists. That's fine
+    shutil.copyfile(topic_transitions_slides_template_path, topic_transitions_slides_path)
+
+    # Add headers to slides template to complete topic_transitions_slides
+    template = read_in_file(topic_transitions_slides_path)
+    spreadsheet_path = recording_dir_path + '/' + 'segments.xlsx'
+    headers = get_non_internal_headers_list(spreadsheet_path)
+    # We don't do a transition for the first header since that's the beginning of the video
+    # Hence [1:] as index
+    headers_split_into_slides = '\n\n---\n\n'.join(headers[1:])
+    to_write = re.sub('markdown-content', headers_split_into_slides, template)
+    with safe_open_w(topic_transitions_slides_path) as f:
+        f.writelines(to_write)
+
+
+# TODO:
+# I will make this function later to actually autogenerate the transition segments eventually. Maybe?
 # Right now I manually record the segments, and then use ffmpeg to standardize them to 2.0 seconds
 def generate_topic_transition_segments(topic_transitions_dir_path, duration = 2.0):
     # Eventually:
     # Pulls from list of segments on the 'Full' tab of the segments spreadsheet
     # Only pulls non-dud segments
     # Can change duration based upon input float
+    pass
 
+# TODO: documentation
+def standardize_transition_segment_lengths(topic_transitions_dir_path, duration = 3.0):
     transition_segment_names = [f for f in os.listdir(topic_transitions_dir_path) if f.endswith('.mp4')]
     for segment_name in transition_segment_names:
         file_name_parts = os.path.splitext(segment_name)

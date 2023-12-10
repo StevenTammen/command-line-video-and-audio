@@ -41,7 +41,7 @@ def get_content_headers(recording_dir_path):
         # rather than being a content section for a nested discussion page
         content_section_on_page = content_section_on_page.group(1)
     else:
-        raise Exception("Content page does not have a content section. Please check and make sure page is complete.")
+        raise Exception("Content page does not have a properly formed content section. Please check and make sure page is complete.")
 
     # Get content headers. Findall() returns a list of strings that match the regular expression.
     # It is a list of tuples that gets returned instead, if you use capture group(s).
@@ -50,7 +50,10 @@ def get_content_headers(recording_dir_path):
         raise Exception("Content section does not have any headers. Please check and make sure page is complete.")
 
     # Trim any trailing spaces
-    return (map(str.strip, content_headers) )
+    content_headers = list(map(str.strip, content_headers))
+    
+    # We don't care about the first header, since it will always be '## Content'
+    return (content_headers[1:])
 
 def write_to_existing_segments_spreadsheet(spreadsheet_path, content_headers):
     '''
@@ -63,6 +66,7 @@ def write_to_existing_segments_spreadsheet(spreadsheet_path, content_headers):
         data = {'File': '', 'Header': content_headers, 'Internal timestamp':'', 'Timestamp':''}
         df = pd.DataFrame(data)
         df.to_excel(writer, sheet_name='Initial')
+    set_spreadsheet_column_widths(spreadsheet_path)
 
 def write_to_new_segments_spreadsheet(spreadsheet_path, content_headers):
     '''
@@ -75,6 +79,7 @@ def write_to_new_segments_spreadsheet(spreadsheet_path, content_headers):
         df = pd.DataFrame(data)
         df.to_excel(writer, sheet_name='Full')
         df.to_excel(writer, sheet_name='Initial')
+    set_spreadsheet_column_widths(spreadsheet_path)
 
 def write_content_headers_to_segments_spreadsheet(recording_dir_path):
     '''
