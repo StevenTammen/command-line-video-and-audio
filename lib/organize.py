@@ -157,7 +157,10 @@ def rename_raw_segments_to_be_in_tens(raw_dir_path):
     .mp4 files.
     '''
     segment_names = [f for f in os.listdir(raw_dir_path) if f.endswith('.mp4')]
-    segment_names.sort()
+    
+    # https://www.geeksforgeeks.org/python-sort-given-list-of-strings-by-part-the-numeric-part-of-string/
+    segment_names.sort(key=lambda segment_name : list(
+        map(int, re.findall(r'\d+', segment_name)))[0]) 
 
     counter = 10
     for segment_name in segment_names:
@@ -170,7 +173,10 @@ def rename_topic_transition_segments_to_be_in_tens(topic_transitions_dir_path):
     TODO - better description
     '''
     transition_segment_names = [f for f in os.listdir(topic_transitions_dir_path) if f.endswith('.mp4')]
-    transition_segment_names.sort()
+
+    # https://www.geeksforgeeks.org/python-sort-given-list-of-strings-by-part-the-numeric-part-of-string/
+    transition_segment_names.sort(key=lambda transition_segment_name : list(
+        map(int, re.findall(r'\d+', transition_segment_name)))[0]) 
 
     counter = 10
     for segment_name in transition_segment_names:
