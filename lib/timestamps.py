@@ -138,7 +138,7 @@ def get_labeled_timestamps_for_youtube_descr(headers, start_times):
     # Build list with newlines between 
     return ('\n'.join(youtube_desc_timestamps))
 
-def get_markdown_timestamp(header, timestamp):
+def get_markdown_timestamp(video_id, header, timestamp):
 
     # Index [0] is the # markup portion. Index [1] is the text of the header
     split_header = header.split(" ", 1)
@@ -147,16 +147,27 @@ def get_markdown_timestamp(header, timestamp):
 
     # Removes the string '###' from the markup portion
     markup_portion = re.sub('###', '', markup_portion)
-    # Adds three spaces for every remaining #, to nest
+    # Adds emsp for every remaining #, to nest
     nesting = re.sub('#', '&emsp;', markup_portion)
 
-    return (nesting + timestamp + ' - ' + header_text)
+    # Builds timestamp shortcode for Hugo
+    # We put two spaces at the end to make each timestamp end up on its own line
+    return (nesting + 
+            r'{{% timestamp videoId="' +
+            video_id +
+            '" time="' +
+            str(convert_string_time_to_seconds(timestamp)) +
+            '" display="' +
+            timestamp +
+            r'" %}} - ' +
+            header_text +
+            '  ')
 
-def get_labeled_timestamps_for_markdown(headers, start_times):
+def get_labeled_timestamps_for_markdown(video_id, headers, start_times):
     # Properly format timestamps combined with headers
     markdown_timestamps = []
     for i in range(len(headers)):
-        markdown_timestamps.append(get_markdown_timestamp(headers[i], start_times[i]))
+        markdown_timestamps.append(get_markdown_timestamp(video_id, headers[i], start_times[i]))
 
     # Build list with newlines between 
     return ('\n'.join(markdown_timestamps))
@@ -178,10 +189,11 @@ def write_timestamps_to_segments_spreadsheet(spreadsheet_path, files_in_df, star
         df.to_excel(writer, sheet_name='Full')
     set_spreadsheet_column_widths(spreadsheet_path)
 
+video_shortcode_re_pattern = re.compile(r'^{{% video((?:.|\n)+?)%}}', re.MULTILINE)
 timestamps_re_pattern = re.compile(r'^## Timestamps.*\n\n((?:.|\n)+?)\{\{% content %\}\}', re.MULTILINE)
-def write_timestamps_to_content_file(content_page_path, full_page_content, labeled_timestamps_for_markdown):
-    new_timestamps_section = '## Timestamps {#timestamps}\n\n' + labeled_timestamps_for_markdown + '\n\n{{% content %}}'
-    full_page_content = timestamps_re_pattern.sub(new_timestamps_section, full_page_content)
+def write_to_content_file(content_page_path, full_page_content, new_video_shortcode, new_timestamps_section):
+    full_page_content = video_shortcode_re_pattern.sub(new_video_shortcode, full_page_content, count = 1)
+    full_page_content = timestamps_re_pattern.sub(new_timestamps_section, full_page_content, count = 1)
     with safe_open_w(content_page_path) as f:
         f.writelines(full_page_content)
 
@@ -194,12 +206,12 @@ def get_summary_from_page_content(full_page_contents):
     return summary
 
 def write_youtube_description_to_file(current_dir_path, content_dir_path, full_page_content, labeled_timestamps_for_youtube_descr):
-    playlist = re.search(r'^playlist: (https://.+)\n', full_page_content, re.MULTILINE)
-    if(playlist == None):
-        raise Exception("Must have playlist in frontmatter in content file to build YouTube description")
-    playlist = playlist.group(1)
+    playlist_url = re.search(r'^playlist: (https://.+)\n', full_page_content, re.MULTILINE)
+    if(playlist_url == None):
+        raise Exception("Must have playlist URL in frontmatter in content file to build YouTube description")
+    playlist_url = playlist_url.group(1)
 
-    url_info = re.search(r'/mnt/c/r/(.+/)content/(.+)', content_dir_path)
+    url_info = re.search(r'/mnt/c/R/(.+/)content/(.+)', content_dir_path)
     domain = url_info.group(1)
     path = url_info.group(2)
     webpage_url = 'https://www.' + domain + path
@@ -207,7 +219,7 @@ def write_youtube_description_to_file(current_dir_path, content_dir_path, full_p
 
     summary = get_summary_from_page_content(full_page_content)
 
-    desc_as_string = (f"Link to wider playlist:\n{playlist}\n\n"
+    desc_as_string = (f"Link to wider playlist:\n{playlist_url}\n\n"
                      f"Link to webpage content:\n{webpage_url}\n\n"
                      f"View slides:\n{slides_url}\n\n"
                      f"Summary:\n\n{summary}\n"
@@ -285,7 +297,7 @@ def add_files_to_correct_rows_in_df(internal_timestamps, processed_files):
     return files_in_df
 
 
-def calculate_timestamps_for_video_and_write_values(current_dir_path):
+def calculate_timestamps_and_write_to_excel_and_yt_desc(current_dir_path):
 
     processed_dir_path = current_dir_path + '/recording/processed'
     spreadsheet_path = current_dir_path + '/' + 'segments.xlsx'
@@ -311,18 +323,61 @@ def calculate_timestamps_for_video_and_write_values(current_dir_path):
     files_in_df = add_files_to_correct_rows_in_df(internal_timestamps, processed_files)
     write_timestamps_to_segments_spreadsheet(spreadsheet_path, files_in_df, start_times)
 
-    # TODO support discussion pages too, not just _index.md
-    content_dir_path = current_dir_path.replace("/mnt/c/dropbox/recordings/", "/mnt/c/r/")
-    content_page_path = content_dir_path + '/' + '_index.md'
-    full_page_content = read_in_file(content_page_path)
-
-    # Write labeled_timestamps_for_markdown to timestamps section of content file
-    # Overwrites what is there, if anything is already there
-    labeled_timestamps_for_markdown = get_labeled_timestamps_for_markdown(headers, start_times)
-    write_timestamps_to_content_file(content_page_path, full_page_content, labeled_timestamps_for_markdown)
-
     # Write youtube description
     # Overwrites what is there, if anything is already there
+    content_dir_path = current_dir_path.replace("/mnt/c/Dropbox/recordings/", "/mnt/c/R/")
+    content_page_path = content_dir_path + '/' + '_index.md'
+    full_page_content = read_in_file(content_page_path)
     labeled_timestamps_for_youtube_descr = get_labeled_timestamps_for_youtube_descr(headers, start_times)
     write_youtube_description_to_file(current_dir_path, content_dir_path, full_page_content, labeled_timestamps_for_youtube_descr)
     
+def calculate_timestamps_and_write_to_content_file(current_dir_path):
+    
+    processed_dir_path = current_dir_path + '/recording/processed'
+    spreadsheet_path = current_dir_path + '/' + 'segments.xlsx'
+
+    duration_map = get_duration_map_based_off_of_processed_recordings(processed_dir_path)
+    start_times = get_segment_start_times(duration_map)
+
+    # Deal with internal timestamps, and build list of objects to
+    # represent the timestamps for the video. Also get headers
+    df = read_in_full_df(spreadsheet_path)  
+    internal_timestamps = df['Internal timestamp'].tolist()
+    start_times = add_start_times_for_segment_internal_timestamps(internal_timestamps, start_times)
+    headers = df['Header'].tolist()
+
+    # TODO support discussion pages too, not just _index.md
+    content_dir_path = current_dir_path.replace("/mnt/c/Dropbox/recordings/", "/mnt/c/R/")
+    content_page_path = content_dir_path + '/' + '_index.md'
+    full_page_content = read_in_file(content_page_path)
+
+    video_url = re.search(r'^video: (https://.+)\n', full_page_content, re.MULTILINE)
+    if(video_url == None):
+        raise Exception("Must have video URL in frontmatter in content file to write timestamps to content file")
+    video_url = video_url.group(1)
+    video_id = re.search(r'\?v=(.+)', video_url).group(1)
+
+    playlist_url = re.search(r'^playlist: (https://.+)\n', full_page_content, re.MULTILINE)
+    if(playlist_url == None):
+        raise Exception("Must have playlist URL in frontmatter in content file to add video shortcode to page")
+    playlist_url = playlist_url.group(1)
+
+    url_info = re.search(r'/mnt/c/R/(.+/)content/(.+)', content_dir_path)
+    domain = url_info.group(1)
+    path = url_info.group(2)
+    slides_url = 'https://www.' + domain + 'slides/' + path
+
+    new_video_shortcode = (r'{{% video\n' +
+        f'videoId="{video_id}"\n\n' +
+        f'videoPlaylist="{playlist_url}"\n\n'
+        f'slides="{slides_url}"\n'
+        r'%}}'
+    )
+
+    labeled_timestamps_for_markdown = get_labeled_timestamps_for_markdown(video_id, headers, start_times)
+    new_timestamps_section = '## Timestamps {#timestamps}\n\n' + labeled_timestamps_for_markdown + r'\n\n{{% content %}}'
+
+    # Write labeled_timestamps_for_markdown to timestamps section of content file
+    # Also fill out video shortcode
+    # Overwrites what is there (if anything is already there) in both cases
+    write_to_content_file(content_page_path, full_page_content, new_video_shortcode, new_timestamps_section)

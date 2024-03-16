@@ -28,7 +28,7 @@ def get_content_headers(recording_dir_path):
     # First convert path to the content version. Here, we are implicitly
     # assuming that the folder structure for the content project is
     # exactly mirrored in the recordings folder
-    content_dir_path = recording_dir_path.replace("/mnt/c/dropbox/recordings/", "/mnt/c/r/")
+    content_dir_path = recording_dir_path.replace("/mnt/c/Dropbox/recordings/", "/mnt/c/R/")
 
     # TODO: support index.md as well as _index.md, for discussion pages
     # Get text of just the content section on the page
