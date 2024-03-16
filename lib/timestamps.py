@@ -21,8 +21,9 @@ def get_duration_map_based_off_of_processed_recordings(processed_dir_path):
 
     segment_names = [f for f in os.listdir(processed_dir_path) if f.endswith('.mp4')]
 
-    # Sort numerically by prefix
-    segment_names = sorted(segment_names, key = lambda x: int(x.split("_")[0]))
+    # https://www.geeksforgeeks.org/python-sort-given-list-of-strings-by-part-the-numeric-part-of-string/
+    segment_names.sort(key=lambda segment_name : list(
+        map(int, re.findall(r'\d+', segment_name)))[0]) 
 
     # For each mp4 file in directory, store the file name and full duration
     # (not just like 05:20, but a float value containing the actual seconds value)
@@ -198,7 +199,7 @@ def write_youtube_description_to_file(current_dir_path, content_dir_path, full_p
         raise Exception("Must have playlist in frontmatter in content file to build YouTube description")
     playlist = playlist.group(1)
 
-    url_info = re.search(r'.+projects/(.+/)content/(.+)', content_dir_path)
+    url_info = re.search(r'/mnt/c/r/(.+/)content/(.+)', content_dir_path)
     domain = url_info.group(1)
     path = url_info.group(2)
     webpage_url = 'https://www.' + domain + path
@@ -286,13 +287,9 @@ def add_files_to_correct_rows_in_df(internal_timestamps, processed_files):
 
 def calculate_timestamps_for_video_and_write_values(current_dir_path):
 
-    content_dir_path = current_dir_path.replace("recordings/", "")
     processed_dir_path = current_dir_path + '/recording/processed'
     spreadsheet_path = current_dir_path + '/' + 'segments.xlsx'
-    # TODO support discussion pages too, not just _index.md
-    content_page_path = content_dir_path + '/' + '_index.md'
-    full_page_content = read_in_file(content_page_path)
-    
+
     duration_map = get_duration_map_based_off_of_processed_recordings(processed_dir_path)
     start_times = get_segment_start_times(duration_map)
 
@@ -303,11 +300,21 @@ def calculate_timestamps_for_video_and_write_values(current_dir_path):
     start_times = add_start_times_for_segment_internal_timestamps(internal_timestamps, start_times)
     headers = df['Header'].tolist()
 
+    processed_files = [x[0] for x in duration_map]
+
+    # https://www.geeksforgeeks.org/python-sort-given-list-of-strings-by-part-the-numeric-part-of-string/
+    processed_files.sort(key=lambda processed_file : list(
+        map(int, re.findall(r'\d+', processed_file)))[0])
+
     # Write timestamps to segments.xlsx file
     # Overwrites what is there, if anything is already there
-    processed_files = sorted([x[0] for x in duration_map], key = lambda x: int(x.split("_")[0]))
     files_in_df = add_files_to_correct_rows_in_df(internal_timestamps, processed_files)
     write_timestamps_to_segments_spreadsheet(spreadsheet_path, files_in_df, start_times)
+
+    # TODO support discussion pages too, not just _index.md
+    content_dir_path = current_dir_path.replace("/mnt/c/dropbox/recordings/", "/mnt/c/r/")
+    content_page_path = content_dir_path + '/' + '_index.md'
+    full_page_content = read_in_file(content_page_path)
 
     # Write labeled_timestamps_for_markdown to timestamps section of content file
     # Overwrites what is there, if anything is already there

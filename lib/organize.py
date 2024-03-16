@@ -84,7 +84,7 @@ def scaffold_recording_dirs(content_dir_path):
     dirs_without_spreadsheets = []
 
     # Recordings/ dir version of parent folder
-    parent_recordings_dir_path = re.sub(r'/([^/]+)/content/', r'/recordings/\1/content/', content_dir_path)
+    parent_recordings_dir_path = re.sub(r'.+/([^/]+)/content/', r'/mnt/c/dropbox/recordings/\1/content/', content_dir_path)
     parent_recordings_dir = Path(parent_recordings_dir_path)
     if(not parent_recordings_dir.exists()):
         print(f'Will make {parent_recordings_dir_path}\n')
@@ -97,7 +97,7 @@ def scaffold_recording_dirs(content_dir_path):
 
     # But those paths are for the normal project directory, not for
     # the recording directory. We want the recording directory versions
-    content_dir_paths = list(map(lambda x: re.sub(r'/([^/]+)/content/', r'/recordings/\1/content/', x), content_dir_paths))
+    content_dir_paths = list(map(lambda x: re.sub(r'.+/([^/]+)/content/', r'/mnt/c/dropbox/recordings/\1/content/', x), content_dir_paths))
 
     # Special case: if no subdirectories, means content_dir_path
     # specifies the path of a single page study, so we need to

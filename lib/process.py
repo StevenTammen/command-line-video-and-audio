@@ -200,11 +200,18 @@ def combine_video_files(recording_dir_path):
     # Get main video segments from the folder ./recording/processed
     main_segments_dir = recording_dir_path + '/recording/processed'
     main_segments = [f for f in os.listdir(main_segments_dir) if f.endswith('.mp4')]
-    main_segments = sorted(main_segments, key = lambda x: int(x.split("_")[0]))
+    
+    # https://www.geeksforgeeks.org/python-sort-given-list-of-strings-by-part-the-numeric-part-of-string/
+    main_segments.sort(key=lambda main_segment : list(
+        map(int, re.findall(r'\d+', main_segment)))[0]) 
 
     # Get the topic transition segments from the folder ./recording/topic-transitions/
     transition_segments_dir = recording_dir_path + '/recording/topic-transitions'
     transition_segments = [f for f in os.listdir(transition_segments_dir) if f.endswith('.mp4')]
+
+    # https://www.geeksforgeeks.org/python-sort-given-list-of-strings-by-part-the-numeric-part-of-string/
+    transition_segments.sort(key=lambda transition_segment : list(
+        map(int, re.findall(r'\d+', transition_segment)))[0]) 
 
     # Get the segments in the right order by placing transition segments between the main segments.
     # If there are N main segments, there ought to be N - 1 transition segments
