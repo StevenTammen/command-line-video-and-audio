@@ -86,10 +86,6 @@ def scaffold_recording_dirs(content_dir_path):
     # Recordings/ dir version of parent folder
     parent_recordings_dir_path = re.sub(r'.+/([^/]+)/content/', r'/mnt/c/Dropbox/recordings/\1/content/', content_dir_path)
     parent_recordings_dir = Path(parent_recordings_dir_path)
-    if(not parent_recordings_dir.exists()):
-        print(f'Will make {parent_recordings_dir_path}\n')
-        dirs_to_make.append(parent_recordings_dir_path)
-    
     
     # fast_scandir is recursive, so works for discussion pages too
     # (that is, all levels of subfolders, not only first level)
@@ -107,8 +103,12 @@ def scaffold_recording_dirs(content_dir_path):
         add_to_things_that_need_scaffolding(parent_recordings_dir_path, dirs_to_make, dirs_without_spreadsheets)
     
     # Otherwise
-    for content_dir_path in content_dir_paths:
-        add_to_things_that_need_scaffolding(content_dir_path, dirs_to_make, dirs_without_spreadsheets)
+    else:
+        if(not parent_recordings_dir.exists()):
+            print(f'Will make {parent_recordings_dir_path}\n')
+            dirs_to_make.append(parent_recordings_dir_path)
+        for content_dir_path in content_dir_paths:
+            add_to_things_that_need_scaffolding(content_dir_path, dirs_to_make, dirs_without_spreadsheets)
 
     # If nothing to scaffold, short circuit
     if(len(dirs_to_make) == 0 and len(dirs_without_spreadsheets) == 0):
