@@ -18,7 +18,7 @@ import pandas as pd
 import re
 
 content_section_re_pattern = re.compile(r'^{{% content %}}((?:.|\n)+?){{% /content %}}', re.MULTILINE)
-content_header_re_pattern = re.compile(r'^[#]+ [^{]+', re.MULTILINE)
+content_header_re_pattern = re.compile(r'^[#]+ [^{\n]+', re.MULTILINE)
 def get_content_headers(recording_dir_path):
     '''
     Gets the content headers from the content page corresponding to
