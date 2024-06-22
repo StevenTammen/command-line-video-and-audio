@@ -168,22 +168,6 @@ def rename_raw_segments_to_be_in_tens(raw_dir_path):
         os.rename(raw_dir_path + '/' + segment_name, new_name)
         counter += 10
 
-def rename_topic_transition_segments_to_be_in_tens(topic_transitions_dir_path):
-    '''
-    TODO - better description
-    '''
-    transition_segment_names = [f for f in os.listdir(topic_transitions_dir_path) if f.endswith('.mp4')]
-
-    # https://www.geeksforgeeks.org/python-sort-given-list-of-strings-by-part-the-numeric-part-of-string/
-    transition_segment_names.sort(key=lambda transition_segment_name : list(
-        map(int, re.findall(r'\d+', transition_segment_name)))[0]) 
-
-    counter = 10
-    for segment_name in transition_segment_names:
-        new_name = topic_transitions_dir_path + '/' + str(counter) +'-' + str(counter + 10) + '.mp4'
-        os.rename(topic_transitions_dir_path + '/' + segment_name, new_name)
-        counter += 10
-
 # TODO
 def rename_processed_segments_to_be_in_tens():
     # Will only really use if after adding new segment = have to re-call rename_raw_segments_to_be_in_tens()
