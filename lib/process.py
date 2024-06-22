@@ -73,6 +73,80 @@ def dynamic_audio_normalization():
     # dynaudnorm ffmpeg filter
     return
 
+
+# -----------------------------------------------------------------------------------------------------------
+
+# Note: Below, I had initially thought to convert the slides into a PDF, then split the PDFs on pages 
+# and turn each page into an image, and then resize those. At some point I could have sworn
+# I had this working with decktape (as it was the first path I set off on), but when trying to wire
+# everything up here in the Python codebase, the sizing was all off. After poking around the options
+# in decktape a bit, I realized that it can export to PNG directly. That seems to work fine, so I
+# switched to doing that. The old approach that I initially thought would work (actually did work at some point?)
+# is shown below for reference.
+
+# # Turn HTML slides into PDF
+# subprocess.run(shlex.split(f'decktape remark topic-transitions-slides.html transitions.pdf'))
+
+# # Turn PDF pages into PNG images
+# subprocess.run(shlex.split(f'pdftoppm -png transitions.pdf transition'))
+
+# # Resize images to be exactly 1920x1080
+# subprocess.run(shlex.split(f'mogrify -resize 1920x *.png'))
+
+# -----------------------------------------------------------------------------------------------------------
+
+# Assumes recording/topic-transitions/topic-transition-slides.html already exists, having been already created by
+# generate_topic_transition_slides()
+def build_topic_transition_segments(current_dir_path):
+    topic_transitions_dir_path = current_dir_path + '/recording/topic-transitions/'
+
+    # I decided to just temporarily change the cwd when running these commands. Seemed the easiest path.
+    # https://stackoverflow.com/a/70682130
+    os.chdir(topic_transitions_dir_path)
+
+    # Turn HTML slides into 1920x1080 images
+    subprocess.run(shlex.split(f'decktape --screenshots --screenshots-directory . --screenshots-size 1920x1080  --screenshots-format png remark topic-transitions-slides.html transitions.pdf'))
+
+    images = [f for f in os.listdir(topic_transitions_dir_path) if f.endswith('.png')]
+
+    # Remove the 1920x1080 part of the decktape slide image file names to make sorting them easier.
+    # This is sort of jank, but easier overall IMO than making the \d+ re.findall re do something more complex
+    def rename_image(image):
+        new_name = image.replace('_1920x1080', '')
+        os.rename(image, new_name)
+        return new_name
+    images = [rename_image(image) for image in images]
+    
+    # https://www.geeksforgeeks.org/python-sort-given-list-of-strings-by-part-the-numeric-part-of-string/
+    images.sort(key=lambda image : list(
+        map(int, re.findall(r'\d+', image)))[0])
+    
+    # Turn each image into a 3 second video (at 25 fps to match the framerate of other recorded content. Zoom records at 25 fps).
+    # https://stackoverflow.com/a/73073276
+    counter = 10
+    for image in images:
+        out_file = str(counter) + '-' + str(counter + 10) + '_no-audio.mp4'
+        subprocess.run(shlex.split(f'ffmpeg -framerate 25 -i {image} -t 3 -c:v libx265 -x265-params lossless=1 -pix_fmt yuv420p -vf "scale=1920:1080,loop=-1:1" -movflags faststart {out_file}'))
+        counter += 10
+
+    # Add dummy audio tracks for each of these segments so they can be multiplexed together with all the recorded segments. See:
+    # https://superuser.com/questions/1624249/use-ffmpeg-concat-demuxer-with-multiple-files-with-without-audio-tracks
+    # https://superuser.com/questions/1044988/merging-several-videos-with-audio-channel-and-without-audio/1044997#1044997
+    no_audio_transition_segments = [f for f in os.listdir(topic_transitions_dir_path) if f.endswith('.mp4')]
+    for no_audio_transition_segment in no_audio_transition_segments:
+        subprocess.run(shlex.split(f'ffmpeg -i {no_audio_transition_segment} -f lavfi -i anullsrc -c:v copy -map 0:v -map 0:a? -map 1:a -shortest {no_audio_transition_segment.replace("_no-audio", "")}'))
+    
+    # Remove temp files from this whole process
+    def remove_file(file):
+        print(f'Removing {file}...')
+        os.remove(file)
+    remove_file('transitions.pdf')
+    [remove_file(image) for image in images]
+    [remove_file(no_audio_transition_segment) for no_audio_transition_segment in no_audio_transition_segments]
+
+    os.chdir(current_dir_path)
+
+
 transition_segment_pattern = re.compile("[0-9]+-[0-9]+.mp4")
 def is_transition_segment(segment_name):
     return transition_segment_pattern.match(segment_name)
@@ -82,7 +156,6 @@ def clear_chapters_on_video_file():
     subprocess.run(shlex.split(f'ffmpeg -i video.mp4 -c copy -map_chapters -1 output.mp4'))
     os.remove('video.mp4')
     os.rename('output.mp4', 'video.mp4')
-    pass
 
 def get_header_text_from_full_header(full_header):
     # Index [0] is the # markup portion. Index [1] is the text of the header

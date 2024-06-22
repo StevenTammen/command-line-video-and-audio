@@ -117,7 +117,7 @@ def scaffold_recording_dirs(content_dir_path):
     
     # Otherwise
     while(True):
-        answer = input("Check over what will be scaffolded. Proceed?\n> ")
+        answer = input("Check over what will be scaffolded. Proceed (y/n)?\n> ")
         if answer.lower() in ["y","yes"]:
             scaffold_directories(dirs_to_make)
             scaffold_spreadsheets(dirs_without_spreadsheets)
