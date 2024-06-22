@@ -15,31 +15,60 @@ import os
 import re
 from .general_utility import *
 from .timestamps import *
+from .organize import *
 import subprocess
 import shlex
 
+# _compressed
 # TODO
 def compress_raw_video_with_libx264():
     return
 
+# _both-ears-audio
 # TODO
 def make_single_ear_audio_both_ears():
     return
 
+# _25fps
 # TODO
 def convert_from_variable_to_constant_framerate(framerate = 30):
     return
 
-# TODO
-def remove_silence_from_segments():
-    return
+# _silence-removed
+# TODO make dynamic (can run both off of raw files like it does at present, but also on things already in processed/ directory, if processed files are already there)
+def remove_silence_from_segments(current_dir_path):
 
+    raw_dir_path = current_dir_path + '/recording/raw'
+    processed_dir_path = current_dir_path + '/recording/processed'
+
+    # Organize raw first. May refactor this later
+    rename_raw_segments_to_be_in_tens(raw_dir_path)
+
+    segment_names = [f for f in os.listdir(raw_dir_path) if f.endswith('.mp4')]
+    files_to_move = []
+    for segment_name in segment_names:
+        out_file = segment_name.replace(".mp4", "_silence_removed.mp4")
+        # print(segment_name)
+        # print(out_file)
+        subprocess.run(shlex.split(f'auto-editor recording/raw/{segment_name} --margin 0.5s --my_ffmpeg -vcodec libx264 --extras "-crf 30" --output recording/raw/{out_file} --no-open'))
+        files_to_move.append(out_file)
+    
+    for file_to_move in files_to_move:
+        src_path = raw_dir_path + '/' + file_to_move
+        dest_path = processed_dir_path + '/' + file_to_move
+        # print(src_path)
+        # print(dest_path)
+        os.rename(src_path, dest_path)
+
+    
+# _normalized
 # TODO
 def audio_normalization_ebu_r_128():
     # loudnorm ffmpeg filter
     return
 
-# TODO
+# _dynamically-normalized
+# TODO 
 def dynamic_audio_normalization():
     # dynaudnorm ffmpeg filter
     return
