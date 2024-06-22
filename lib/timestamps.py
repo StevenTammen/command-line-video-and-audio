@@ -9,13 +9,12 @@ involved in determining timestamps, so that they do
 not have to be figured out manually.
 '''
 
-import math
 import subprocess
 import shlex
 from .general_utility import *
+from .transcript import *
 import re
 import pandas as pd
-import datetime
 
 def get_duration_map_based_off_of_processed_recordings(processed_dir_path):
 
@@ -40,26 +39,6 @@ def get_duration_map_based_off_of_processed_recordings(processed_dir_path):
         duration_map.append(tuple([segment_name, segment_duration]))
 
     return duration_map
-   
-def get_string_value_of_time(numerical_time):
-   
-    # This function assumes the var numerical_time is in seconds (rather than milliseconds or whatever).
-    # Otherwise, before anything else, run whatever you have to in order to convert numerical_time to seconds.
-    # Be that numerical_time = numerical_time * 1000 or whatever else.
-   
-    # There are 60 seconds in an hour, and 60 minutes in an hour. That's where 3600.00 comes from
-    # We use a decimal version of this number to ensure all math is done with floats
-    hours = math.floor(numerical_time/3600.0)
-   
-    # https://www.geeksforgeeks.org/what-is-a-modulo-operator-in-python/
-    minutes = math.floor((numerical_time % 3600.0)/60.0)
-   
-    seconds = math.floor(numerical_time % 60)
-   
-    if(hours > 0):
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-    else:
-        return f"{minutes:02d}:{seconds:02d}"
 
 # Timestamps conceptually represent segment start times (not end times)
 def get_segment_start_times(duration_map, topic_transition_duration = 3.0):
@@ -150,18 +129,8 @@ def get_markdown_timestamp(video_id, header, timestamp):
     # Adds emsp for every remaining #, to nest
     nesting = re.sub('#', '&emsp;', markup_portion)
 
-    # Builds timestamp shortcode for Hugo
-    # We put two spaces at the end to make each timestamp end up on its own line
-    return (nesting + 
-            r'{{% timestamp videoId="' +
-            video_id +
-            '" time="' +
-            str(convert_string_time_to_seconds(timestamp)) +
-            '" display="' +
-            timestamp +
-            r'" %}} - ' +
-            header_text +
-            '  ')
+    return build_hugo_timestamp(video_id, timestamp, header_text, nesting)
+
 
 def get_labeled_timestamps_for_markdown(video_id, headers, start_times):
     # Properly format timestamps combined with headers
@@ -191,9 +160,11 @@ def write_timestamps_to_segments_spreadsheet(spreadsheet_path, files_in_df, star
 
 video_shortcode_re_pattern = re.compile(r'^{{% video((?:.|\n)+?)%}}', re.MULTILINE)
 timestamps_re_pattern = re.compile(r'^## Timestamps.*\n\n((?:.|\n)+?)\{\{% content %\}\}', re.MULTILINE)
-def write_to_content_file(content_page_path, full_page_content, new_video_shortcode, new_timestamps_section):
+transcript_section_re_pattern = re.compile(r'^{{% transcript %}}((?:.|\n)+?){{% /transcript %}}', re.MULTILINE)
+def write_to_content_file(content_page_path, full_page_content, new_video_shortcode, new_timestamps_section, new_transcript):
     full_page_content = video_shortcode_re_pattern.sub(new_video_shortcode, full_page_content, count = 1)
     full_page_content = timestamps_re_pattern.sub(new_timestamps_section, full_page_content, count = 1)
+    full_page_content = transcript_section_re_pattern.sub(new_transcript, full_page_content, count = 1)
     with safe_open_w(content_page_path) as f:
         f.writelines(full_page_content)
 
@@ -228,28 +199,6 @@ def write_youtube_description_to_file(current_dir_path, content_dir_path, full_p
     youtube_description_file_path = current_dir_path + '/' + 'youtube-description.txt'
     with safe_open_w(youtube_description_file_path) as f:
             f.writelines(desc_as_string)
-
-def convert_string_time_to_seconds(string_time):
-
-    time_segments = string_time.split(":")
-
-    # If there is a value for hours
-    if(len(time_segments) == 3):
-        hours = int(time_segments[0])
-        minutes = int(time_segments[1])
-        seconds = int(time_segments[2])
-        # Convert to just seconds
-        return  hours * 3600 + minutes * 60 + seconds
-    
-    # If there is no value for hours = just minutes and seconds
-    else: # len(time_segments) == 2
-        minutes = int(time_segments[0])
-        seconds = int(time_segments[1])
-        # Convert to just seconds
-        return  minutes * 60 + seconds
-    
-def convert_string_time_to_ms(string_time):
-    return (convert_string_time_to_seconds(string_time) * 1000)
     
 
 def add_start_times_for_segment_internal_timestamps(internal_timestamps, start_times, topic_transition_duration = 3.0):
@@ -377,7 +326,10 @@ def calculate_timestamps_and_write_to_content_file(current_dir_path):
     labeled_timestamps_for_markdown = get_labeled_timestamps_for_markdown(video_id, headers, start_times)
     new_timestamps_section = '## Timestamps {#timestamps}\n\n' + labeled_timestamps_for_markdown + r'\n\n{{% content %}}'
 
+    # For now, combine 3 subsegments together to generate somewhat longer "lines" in the transcript
+    new_transcript = r'{{% transcript %}}\n\n## Video/audio transcript {#video-audio-transcript}\n\n' + get_transcript(video_id, 3) + r'\n\n{{% /transcript %}}'
+
     # Write labeled_timestamps_for_markdown to timestamps section of content file
     # Also fill out video shortcode
     # Overwrites what is there (if anything is already there) in both cases
-    write_to_content_file(content_page_path, full_page_content, new_video_shortcode, new_timestamps_section)
+    write_to_content_file(content_page_path, full_page_content, new_video_shortcode, new_timestamps_section, new_transcript)
