@@ -275,6 +275,7 @@ def calculate_timestamps_and_write_to_excel_and_yt_desc(current_dir_path):
     # Write youtube description
     # Overwrites what is there, if anything is already there
     content_dir_path = current_dir_path.replace("/mnt/c/Dropbox/recordings/", "/mnt/c/R/")
+    # TODO: make above replacement handle if it is dropbox lowercase not just Dropbox uppercase. Causes runtime exception if you cd to lowercase path not uppercase path in shell
     content_page_path = content_dir_path + '/' + '_index.md'
     full_page_content = read_in_file(content_page_path)
     labeled_timestamps_for_youtube_descr = get_labeled_timestamps_for_youtube_descr(headers, start_times)
